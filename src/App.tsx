@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, MouseEvent } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
 import { 
   Sun, 
@@ -17,7 +17,11 @@ import {
   ShieldCheck,
   Zap,
   Flame,
-  ArrowRight
+  ArrowRight,
+  X,
+  Maximize2,
+  Minimize2,
+  Search
 } from 'lucide-react';
 
 interface Product {
@@ -59,6 +63,10 @@ const BUNDLES = [
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -77,6 +85,14 @@ export default function App() {
       document.body.style.color = '#111111';
     }
   }, [darkMode]);
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!isZoomed || !selectedProduct) return;
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setMousePos({ x, y });
+  };
 
   const transitionConfig = {
     duration: 1,
@@ -142,12 +158,14 @@ export default function App() {
                 muted 
                 loop 
                 playsInline
-                className="w-full h-full object-cover grayscale-[0.3] opacity-50"
+                poster="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1920"
+                className="w-full h-full object-cover grayscale-[0.2] opacity-70"
               >
-                <source src="https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-in-a-tunnel-at-night-42171-large.mp4" type="video/mp4" />
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-rear-view-of-a-sports-car-driving-through-a-tunnel-42931-large.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
-              <div className="absolute inset-0 bg-gradient-to-r from-luxury-bg via-luxury-bg/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-luxury-bg/20 via-transparent to-luxury-bg/40" />
+              <div className="absolute inset-0 bg-gradient-to-r from-luxury-bg/60 via-transparent to-transparent" />
               <div className="absolute top-0 right-0 w-[800px] h-full bg-gold/5 blur-[120px] rounded-full translate-x-1/2" />
             </div>
 
@@ -255,6 +273,7 @@ export default function App() {
                     viewport={{ once: true }}
                     transition={{ ...transitionConfig, delay: i * 0.15 }}
                     className="group"
+                    onClick={() => setSelectedProduct(product)}
                   >
                     <div className="relative aspect-[4/5] bg-neutral-950 rounded-[2.5rem] overflow-hidden mb-8 border luxury-border card-glass">
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60 z-10" />
@@ -393,6 +412,99 @@ export default function App() {
           </footer>
         </div>
       </div>
+
+      {/* Interactive Detail Viewer */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10 bg-luxury-bg/95 backdrop-blur-xl"
+          >
+            <motion.div
+              layoutId={`product-${selectedProduct.id}`}
+              className="relative w-full max-w-6xl h-full max-h-[85vh] flex flex-col md:flex-row gap-10"
+            >
+              <div 
+                className="relative flex-1 bg-black rounded-[2.5rem] overflow-hidden border luxury-border cursor-crosshair group"
+                onMouseMove={handleMouseMove}
+                onClick={() => setIsZoomed(!isZoomed)}
+              >
+                <div 
+                  className="w-full h-full transition-transform duration-200 ease-out flex items-center justify-center"
+                  style={{
+                    transform: isZoomed ? `scale(2.5)` : `scale(1)`,
+                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`
+                  }}
+                >
+                  <img 
+                    src={selectedProduct.image} 
+                    alt={selectedProduct.name} 
+                    className="w-full h-full object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                
+                <div className="absolute top-6 right-6 flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border luxury-border text-white hover:bg-white/20">
+                    {isZoomed ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                  </div>
+                </div>
+
+                {!isZoomed && (
+                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/40 backdrop-blur-md border luxury-border rounded-full text-[10px] uppercase tracking-[0.2em] font-bold text-white pointer-events-none">
+                    Click to Inspect Detail
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full md:w-[350px] flex flex-col justify-center">
+                <span className="text-gold text-[10px] font-black uppercase tracking-[0.4em] mb-4">Masterpiece Archive</span>
+                <h2 className="text-4xl md:text-6xl font-serif mb-6">{selectedProduct.name}</h2>
+                <div className="space-y-6 mb-12 opacity-60 text-sm font-light leading-relaxed">
+                  <p>A cinema-grade render optimized for large format displays and fine-art prints. Each detail is captured with high-fidelity precision.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-white/5 rounded-2xl border luxury-border">
+                      <div className="text-[9px] uppercase tracking-widest font-black gold-accent mb-1">Resolution</div>
+                      <div className="font-serif">7680 × 4320</div>
+                    </div>
+                    <div className="p-4 bg-white/5 rounded-2xl border luxury-border">
+                      <div className="text-[9px] uppercase tracking-widest font-black gold-accent mb-1">Format</div>
+                      <div className="font-serif">RAW (ProRes)</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                  <button className="w-full py-5 bg-gold text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3">
+                    <ShoppingBag size={18} /> Purchase License
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      setIsZoomed(false);
+                    }}
+                    className="w-full py-5 bg-white/5 text-white border luxury-border font-black text-[11px] uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10"
+                  >
+                    Close Archive
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setSelectedProduct(null);
+                  setIsZoomed(false);
+                }}
+                className="absolute -top-12 -right-0 md:-right-12 p-3 text-white/40 hover:text-white transition-colors"
+              >
+                <X size={32} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
